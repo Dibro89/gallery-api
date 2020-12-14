@@ -1,6 +1,6 @@
 package me.dibro.gallery.api.controller;
 
-import me.dibro.gallery.api.model.User;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,10 +10,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/user")
+@Slf4j
 public class UserController {
 
     @GetMapping
-    public Map<String, Object> info(@AuthenticationPrincipal User user) {
+    public Map<String, Object> info(@AuthenticationPrincipal String user) {
         return Map.of("user", user);
     }
 }

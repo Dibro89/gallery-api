@@ -6,6 +6,7 @@ import lombok.Setter;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -20,4 +21,13 @@ public class User {
     private long telegramId;
 
     private String name;
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", telegramId=" + telegramId +
+                ", name='" + name + '\'' +
+                '}';
+    }
 }

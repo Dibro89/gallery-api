@@ -1,50 +1,44 @@
 package me.dibro.gallery.api.security;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.web.filter.GenericFilterBean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Date;
-import java.util.Map;
 
-@Slf4j
-public class JwtAuthenticationFilter extends GenericFilterBean {
+public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
 
-    private static final AntPathRequestMatcher REQUEST_MATCHER = new AntPathRequestMatcher("/auth", "POST");
+    private static final String BEARER_AUTHENTICATION_TYPE = "Bearer ";
 
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        doFilter((HttpServletRequest) request, (HttpServletResponse) response, chain);
+    public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
+        super(authenticationManager);
     }
 
-    private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
-        if (!REQUEST_MATCHER.matches(request)) {
-            chain.doFilter(request, response);
-            return;
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        String token = getToken(request);
+        if (token != null) {
+            String subject = JwtHelper.parseJwt(token);
+            if (subject != null) {
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(subject, null, null));
+            }
         }
+        chain.doFilter(request, response);
+    }
 
-        TypeReference<Map<String, Object>> typeReference = new TypeReference<>() {};
-        Map<String, Object> data = new ObjectMapper().readValue(request.getInputStream(), typeReference);
-
-        logger.info("data: " + data);
-
-        String token = Jwts.builder()
-                .setClaims(Jwts.claims().setSubject(data.get("id").toString()))
-                .setExpiration(new Date(System.currentTimeMillis() + 86400000))
-                .signWith(SignatureAlgorithm.HS256, "HelloWorldHelloWorldHelloWorldHelloWorldHelloWorld")
-                .compact();
-
-        response.getWriter().println(token);
+    private String getToken(HttpServletRequest request) {
+        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (header != null && header.startsWith(BEARER_AUTHENTICATION_TYPE)) {
+            return header.substring(BEARER_AUTHENTICATION_TYPE.length());
+        }
+        return null;
     }
 }
