@@ -1,8 +1,11 @@
 package me.dibro.gallery.api.security;
 
+import me.dibro.gallery.api.model.User;
+import me.dibro.gallery.api.repository.UserRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
@@ -14,10 +17,13 @@ import java.io.IOException;
 
 public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
 
-    private static final String BEARER_AUTHENTICATION_TYPE = "Bearer ";
+    private static final String PREFIX = "Bearer ";
 
-    public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
+    private final UserRepository userRepository;
+
+    public JwtAuthenticationFilter(AuthenticationManager authenticationManager, UserRepository userRepository) {
         super(authenticationManager);
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -27,17 +33,24 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
         if (token != null) {
             String subject = JwtHelper.parseJwt(token);
             if (subject != null) {
-                SecurityContextHolder.getContext().setAuthentication(
-                        new UsernamePasswordAuthenticationToken(subject, null, null));
+                SecurityContextHolder.getContext().setAuthentication(createAuthentication(subject));
+            } else {
+                SecurityContextHolder.clearContext();
             }
         }
         chain.doFilter(request, response);
     }
 
+    private Authentication createAuthentication(String subject) {
+        long telegramId = Long.parseLong(subject);
+        User user = userRepository.findByTelegramId(telegramId).orElseThrow();
+        return new UsernamePasswordAuthenticationToken(user, null, null);
+    }
+
     private String getToken(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header != null && header.startsWith(BEARER_AUTHENTICATION_TYPE)) {
-            return header.substring(BEARER_AUTHENTICATION_TYPE.length());
+        if (header != null && header.startsWith(PREFIX)) {
+            return header.substring(PREFIX.length());
         }
         return null;
     }
