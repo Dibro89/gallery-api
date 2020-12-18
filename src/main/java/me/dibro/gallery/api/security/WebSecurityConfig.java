@@ -29,9 +29,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
             .and()
             .authorizeRequests()
                 .antMatchers(HttpMethod.POST, "/auth").permitAll()
+                .antMatchers(HttpMethod.GET, "/memes/**").permitAll()
                 .anyRequest().authenticated()
             .and()
-            .addFilter(new JwtAuthenticationFilter(authenticationManager(), userRepository));
+            .addFilter(new JwtAuthorizationFilter(authenticationManager(), userRepository));
         // @formatter:on
 
         // TODO: json errors

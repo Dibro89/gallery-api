@@ -4,9 +4,9 @@ import me.dibro.gallery.api.model.User;
 import me.dibro.gallery.api.repository.UserRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import javax.servlet.FilterChain;
@@ -15,13 +15,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
+public class JwtAuthorizationFilter extends BasicAuthenticationFilter {
 
-    private static final String PREFIX = "Bearer ";
+    private static final String AUTHENTICATION_SCHEME_BEARER = "Bearer" + " ";
 
     private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(AuthenticationManager authenticationManager, UserRepository userRepository) {
+    public JwtAuthorizationFilter(AuthenticationManager authenticationManager, UserRepository userRepository) {
         super(authenticationManager);
         this.userRepository = userRepository;
     }
@@ -42,15 +42,15 @@ public class JwtAuthenticationFilter extends BasicAuthenticationFilter {
     }
 
     private Authentication createAuthentication(String subject) {
-        long telegramId = Long.parseLong(subject);
-        User user = userRepository.findByTelegramId(telegramId).orElseThrow();
-        return new UsernamePasswordAuthenticationToken(user, null, null);
+        Long telegramId = Long.valueOf(subject);
+        User user = userRepository.findById(telegramId).orElseThrow();
+        return new PreAuthenticatedAuthenticationToken(user, null, null);
     }
 
     private String getToken(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header != null && header.startsWith(PREFIX)) {
-            return header.substring(PREFIX.length());
+        if (header != null && header.startsWith(AUTHENTICATION_SCHEME_BEARER)) {
+            return header.substring(AUTHENTICATION_SCHEME_BEARER.length());
         }
         return null;
     }

@@ -23,15 +23,16 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final String botToken;
 
-    public AuthController(UserRepository userRepository, @Value("${botToken}") String botToken) {
+    @Value("${bot.token}")
+    private String botToken;
+
+    public AuthController(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.botToken = botToken;
     }
 
     @PostMapping("/auth")
-    public Object auth(@RequestBody Map<String, Object> authData) {
+    public Map<String, Object> auth(@RequestBody Map<String, Object> authData) {
         if (!verify(authData)) {
             return null;
         }
